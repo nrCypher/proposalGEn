@@ -1,0 +1,11 @@
+# Edge agent image — x86 (Intel N100). For Jetson use an l4t-base + torch wheel instead.
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 WTE_SPOOL_DIR=/var/lib/wte/spool
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install --no-cache-dir -e ".[vision,edge]" pyyaml
+RUN mkdir -p /var/lib/wte/spool
+CMD ["wte-edge", "--config", "/etc/wte/camera.json"]

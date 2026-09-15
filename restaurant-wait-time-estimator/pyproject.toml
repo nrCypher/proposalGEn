@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wte"
+version = "0.1.0"
+description = "Restaurant Wait-Time Estimator — privacy-first video analytics, forecasting and POS integration"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "numpy>=1.26",
+    "PyJWT>=2.8",
+    "httpx>=0.26",
+]
+
+[project.optional-dependencies]
+# Tier-1 CV hot path (edge agent + cloud inference). Heavy; install only where it runs.
+vision = [
+    "ultralytics>=8.3",
+    "supervision>=0.25",
+    "opencv-python-headless>=4.9",
+]
+# Face blurring on the edge (OpenCV alone is enough for the Haar fallback).
+edge = ["opencv-python-headless>=4.9"]
+# Forecasting: Prophet for the warm tier; the cold-start baseline is dependency-free.
+forecast = ["prophet>=1.1.5", "pandas>=2.1", "holidays>=0.40"]
+# VLM tier-2 reasoning (OpenAI-compatible client works for vLLM, OpenAI and Gemini-OpenAI).
+vlm = ["openai>=1.30"]
+# Postgres / TimescaleDB persistence.
+db = ["asyncpg>=0.29"]
+# Kafka event bus (in-memory bus is the default for dev/tests).
+kafka = ["aiokafka>=0.10"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.26", "ruff>=0.4"]
+
+[project.scripts]
+wte-api = "wte.api.main:run"
+wte-edge = "wte.edge.agent:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

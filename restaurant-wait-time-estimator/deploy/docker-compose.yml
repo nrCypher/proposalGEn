@@ -1,0 +1,67 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: wte
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes:
+      - tsdb:/var/lib/postgresql/data
+      - ../src/wte/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wte"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    environment:
+      WTE_DATABASE_URL: postgresql://wte_app:wte_app@timescaledb:5432/wte
+      WTE_REDIS_URL: redis://redis:6379/0
+      WTE_JWT_SECRET: ${WTE_JWT_SECRET:-dev-secret-change-me}
+      WTE_EDGE_SHARED_SECRET: ${WTE_EDGE_SHARED_SECRET:-dev-edge-secret}
+      WTE_TOAST_WEBHOOK_SECRET: ${WTE_TOAST_WEBHOOK_SECRET:-dev-toast-secret}
+    ports: ["8080:8080"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
+  # Self-hosted VLM for the EU privacy tier (blueprint §3.3). Needs an NVIDIA GPU.
+  vllm:
+    image: vllm/vllm-openai:latest
+    profiles: ["gpu"]
+    command: >
+      --model Qwen/Qwen2.5-VL-7B-Instruct --quantization fp8 --max-model-len 8192
+      --guided-decoding-backend outlines
+    ports: ["8000:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]
+
+  # Example edge agent container (normally runs on-site, not in this compose).
+  edge:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.edge
+    profiles: ["edge"]
+    environment:
+      WTE_CLOUD_URL: http://api:8080
+      WTE_EDGE_SHARED_SECRET: ${WTE_EDGE_SHARED_SECRET:-dev-edge-secret}
+      WTE_TRACKER: bytetrack
+    volumes:
+      - ../config/camera.example.json:/etc/wte/camera.json:ro
+      - spool:/var/lib/wte/spool
+    command: ["wte-edge", "--config", "/etc/wte/camera.json"]
+
+volumes:
+  tsdb:
+  spool:

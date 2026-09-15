@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WTE widget demo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
+  <script src="wait-widget.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f6f7f9; margin:0; padding:24px; }
+    form { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    input { padding:6px 8px; border:1px solid #ccc; border-radius:8px; min-width:180px; }
+    button { padding:6px 12px; border-radius:8px; border:0; background:#2563eb; color:#fff; }
+  </style>
+</head>
+<body>
+  <h2>Restaurant wait-time widget — demo</h2>
+  <form id="f">
+    <input id="api" placeholder="API base, e.g. http://localhost:8080" value="http://localhost:8080" />
+    <input id="token" placeholder="JWT (POST /v1/dev/token)" />
+    <input id="loc" placeholder="location_id" value="lisboa-baixa" />
+    <button>Load</button>
+  </form>
+  <div id="mount"></div>
+  <script>
+    document.getElementById("f").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const m = document.getElementById("mount");
+      m.innerHTML = "";
+      const w = document.createElement("wte-wait-widget");
+      w.setAttribute("api", document.getElementById("api").value);
+      w.setAttribute("token", document.getElementById("token").value);
+      w.setAttribute("location", document.getElementById("loc").value);
+      m.appendChild(w);
+    });
+  </script>
+</body>
+</html>
